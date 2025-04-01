@@ -20,6 +20,36 @@
             border-radius: 10px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
+        h1 {
+            color: #333;
+        }
+        .post-section {
+            margin-top: 30px;
+            text-align: left;
+        }
+        textarea, input {
+            width: 100%;
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        button {
+            margin-top: 10px;
+            padding: 10px 20px;
+            border: none;
+            background-color: #0073e6;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .posts {
+            margin-top: 20px;
+            background: #eee;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: left;
+        }
         .post {
             background: white;
             padding: 10px;
@@ -27,6 +57,16 @@
             border-radius: 5px;
             box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
             position: relative;
+        }
+        .post .info {
+            font-size: 12px;
+            color: #666;
+        }
+        .comments {
+            margin-top: 10px;
+            padding-left: 20px;
+            font-size: 14px;
+            color: #555;
         }
         .delete-btn {
             position: absolute;
@@ -59,7 +99,7 @@
         <input type="password" id="passwordInput" placeholder="输入密码">
         <button onclick="checkPassword()">提交</button>
     </div>
-    
+
     <div class="container" id="content" style="display: none;">
         <button onclick="switchLanguage('zh')">中文</button>
         <button onclick="switchLanguage('en')">English</button>
@@ -69,6 +109,7 @@
         <div class="post-section">
             <h2 id="newPost">发布新帖</h2>
             <textarea id="postInput" placeholder="写下你的帖子内容..."></textarea>
+            <input type="file" id="imageInput" accept="image/*">
             <button onclick="addPost()" id="postButton">发布</button>
         </div>
         
@@ -78,17 +119,12 @@
     </div>
     
     <script>
-        if (localStorage.getItem("authenticated") === "true") {
-            document.getElementById("passwordScreen").style.display = "none";
-            document.getElementById("content").style.display = "block";
-        }
-        
         function checkPassword() {
             var password = document.getElementById("passwordInput").value;
             if (password === "114514") {
-                localStorage.setItem("authenticated", "true");
                 document.getElementById("passwordScreen").style.display = "none";
                 document.getElementById("content").style.display = "block";
+                loadPosts(); // 加载帖子
             } else {
                 alert("密码错误，拒绝访问！");
             }
@@ -96,50 +132,132 @@
         
         function addPost() {
             var postInput = document.getElementById("postInput");
+            var imageInput = document.getElementById("imageInput");
             var postText = postInput.value.trim();
             var postsSection = document.getElementById("posts");
-            if (postText !== "") {
+            if (postText !== "" || imageInput.files.length > 0) {
                 var newPost = document.createElement("div");
                 newPost.classList.add("post");
                 var timestamp = new Date().toLocaleString();
-                newPost.innerHTML = `<p>${postText}</p><div class="info">发表于 ${timestamp}</div>` +
-                                   `<button class="delete-btn" onclick="deletePost(this)">删除</button>`;
+                var content = `<p>${postText}</p><div class="info">发表于 ${timestamp}</div>`;
+                
+                if (imageInput.files.length > 0) {
+                    var imageUrl = URL.createObjectURL(imageInput.files[0]);
+                    content += `<img src="${imageUrl}" style="max-width:100%; border-radius:5px; margin-top:10px;">`;
+                }
+                
+                content += `<button class="delete-btn" onclick="deletePost(this)">删除</button>`;
+                
+                content += `<div class="comments">
+                                <h4>留言：</h4>
+                                <textarea placeholder="写下你的留言..."></textarea>
+                                <button onclick="addComment(this)">提交</button>
+                                <div class="comment-list"></div>
+                            </div>`;
+                
+                newPost.innerHTML = content;
                 postsSection.appendChild(newPost);
-                savePosts();
+
+                // 保存到localStorage
+                savePost(postText, imageInput.files);
                 postInput.value = "";
+                imageInput.value = "";
             }
         }
-        
-        function savePosts() {
-            localStorage.setItem("posts", document.getElementById("posts").innerHTML);
+
+        function savePost(postText, files) {
+            var posts = JSON.parse(localStorage.getItem("posts") || "[]");
+            var post = {
+                text: postText,
+                files: files.length > 0 ? URL.createObjectURL(files[0]) : null,
+                timestamp: new Date().toLocaleString()
+            };
+            posts.push(post);
+            localStorage.setItem("posts", JSON.stringify(posts)); // 保存帖子到localStorage
         }
-        
+
         function loadPosts() {
-            var savedPosts = localStorage.getItem("posts");
-            if (savedPosts) {
-                document.getElementById("posts").innerHTML = savedPosts;
-            }
+            var posts = JSON.parse(localStorage.getItem("posts") || "[]");
+            var postsSection = document.getElementById("posts");
+            posts.forEach(function(post) {
+                var newPost = document.createElement("div");
+                newPost.classList.add("post");
+                var content = `<p>${post.text}</p><div class="info">发表于 ${post.timestamp}</div>`;
+                
+                if (post.files) {
+                    content += `<img src="${post.files}" style="max-width:100%; border-radius:5px; margin-top:10px;">`;
+                }
+                
+                content += `<button class="delete-btn" onclick="deletePost(this)">删除</button>`;
+                
+                content += `<div class="comments">
+                                <h4>留言：</h4>
+                                <textarea placeholder="写下你的留言..."></textarea>
+                                <button onclick="addComment(this)">提交</button>
+                                <div class="comment-list"></div>
+                            </div>`;
+                
+                newPost.innerHTML = content;
+                postsSection.appendChild(newPost);
+            });
         }
         
         function deletePost(button) {
-            button.parentElement.remove();
-            savePosts();
+            var post = button.parentElement;
+            post.remove();
+            
+            // 删除本地存储中的帖子
+            var posts = JSON.parse(localStorage.getItem("posts") || "[]");
+            var postIndex = posts.findIndex(p => p.timestamp === post.querySelector(".info").textContent.split("发表于 ")[1]);
+            if (postIndex !== -1) {
+                posts.splice(postIndex, 1);
+                localStorage.setItem("posts", JSON.stringify(posts));
+            }
+        }
+        
+        function addComment(button) {
+            var commentInput = button.previousElementSibling;
+            var commentText = commentInput.value.trim();
+            if (commentText !== "") {
+                var commentList = button.nextElementSibling;
+                var newComment = document.createElement("p");
+                newComment.textContent = commentText;
+                commentList.appendChild(newComment);
+                commentInput.value = "";
+            }
         }
         
         function switchLanguage(lang) {
             const texts = {
-                zh: { title: "Chinese Culture Appreciation CCA 内部讨论组", welcome: "欢迎来到内部讨论区，在这里可以发布想法、讨论话题，与同学互动。", newPost: "发布新帖", postButton: "发布", postList: "帖子列表" },
-                en: { title: "Chinese Culture Appreciation CCA Discussion Group", welcome: "Welcome to the discussion area. Here, you can share ideas, discuss topics, and interact with fellow students.", newPost: "New Post", postButton: "Post", postList: "Post List" }
+                zh: { 
+                    title: "Chinese Culture Appreciation CCA 内部讨论组", 
+                    welcome: "欢迎来到内部讨论区，在这里可以发布想法、讨论话题，与同学互动。",
+                    newPost: "发布新帖", 
+                    postButton: "发布", 
+                    postList: "帖子列表", 
+                    passwordPlaceholder: "输入密码",
+                    submitButton: "提交"
+                },
+                en: { 
+                    title: "Chinese Culture Appreciation CCA Discussion Group", 
+                    welcome: "Welcome to the discussion area. Here, you can share ideas, discuss topics, and interact with fellow students.", 
+                    newPost: "New Post", 
+                    postButton: "Post", 
+                    postList: "Post List", 
+                    passwordPlaceholder: "Enter password", 
+                    submitButton: "Submit"
+                }
             };
             document.getElementById("title").textContent = texts[lang].title;
             document.getElementById("welcome").textContent = texts[lang].welcome;
             document.getElementById("newPost").textContent = texts[lang].newPost;
             document.getElementById("postButton").textContent = texts[lang].postButton;
             document.getElementById("postList").textContent = texts[lang].postList;
+            document.getElementById("passwordInput").placeholder = texts[lang].passwordPlaceholder;
+            document.querySelector("button[onclick='checkPassword()']").textContent = texts[lang].submitButton;
         }
-        
-        window.onload = loadPosts;
     </script>
 </body>
 </html>
+
 
