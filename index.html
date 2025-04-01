@@ -101,18 +101,20 @@
     </div>
 
     <div class="container" id="content" style="display: none;">
-        <h1>Chinese Culture Appreciation CCA 内部讨论组</h1>
-        <p>欢迎来到内部讨论区，在这里可以发布想法、讨论话题，与同学互动。</p>
+        <button onclick="switchLanguage('zh')">中文</button>
+        <button onclick="switchLanguage('en')">English</button>
+        <h1 id="title">Chinese Culture Appreciation CCA 内部讨论组</h1>
+        <p id="welcome">欢迎来到内部讨论区，在这里可以发布想法、讨论话题，与同学互动。</p>
         
         <div class="post-section">
-            <h2>发布新帖</h2>
+            <h2 id="newPost">发布新帖</h2>
             <textarea id="postInput" placeholder="写下你的帖子内容..."></textarea>
             <input type="file" id="imageInput" accept="image/*">
-            <button onclick="addPost()">发布</button>
+            <button onclick="addPost()" id="postButton">发布</button>
         </div>
         
         <div id="posts" class="posts">
-            <h2>帖子列表</h2>
+            <h2 id="postList">帖子列表</h2>
         </div>
     </div>
     
@@ -159,21 +161,16 @@
             }
         }
         
-        function addComment(button) {
-            var commentInput = button.previousElementSibling;
-            var commentText = commentInput.value.trim();
-            if (commentText !== "") {
-                var commentList = button.nextElementSibling;
-                var newComment = document.createElement("p");
-                newComment.textContent = commentText;
-                commentList.appendChild(newComment);
-                commentInput.value = "";
-            }
-        }
-        
-        function deletePost(button) {
-            var post = button.parentElement;
-            post.remove();
+        function switchLanguage(lang) {
+            const texts = {
+                zh: { title: "Chinese Culture Appreciation CCA 内部讨论组", welcome: "欢迎来到内部讨论区，在这里可以发布想法、讨论话题，与同学互动。", newPost: "发布新帖", postButton: "发布", postList: "帖子列表" },
+                en: { title: "Chinese Culture Appreciation CCA Discussion Group", welcome: "Welcome to the discussion area. Here, you can share ideas, discuss topics, and interact with fellow students.", newPost: "New Post", postButton: "Post", postList: "Post List" }
+            };
+            document.getElementById("title").textContent = texts[lang].title;
+            document.getElementById("welcome").textContent = texts[lang].welcome;
+            document.getElementById("newPost").textContent = texts[lang].newPost;
+            document.getElementById("postButton").textContent = texts[lang].postButton;
+            document.getElementById("postList").textContent = texts[lang].postList;
         }
     </script>
 </body>
