@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chinese Culture Appreciation CCA 内部讨论组</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            text-align: center;
+        }
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        .post-section {
+            margin-top: 30px;
+            text-align: left;
+        }
+        textarea, input {
+            width: 100%;
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        button {
+            margin-top: 10px;
+            padding: 10px 20px;
+            border: none;
+            background-color: #0073e6;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .posts {
+            margin-top: 20px;
+            background: #eee;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: left;
+        }
+        .post {
+            background: white;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+        .post .info {
+            font-size: 12px;
+            color: #666;
+        }
+        .comments {
+            margin-top: 10px;
+            padding-left: 20px;
+            font-size: 14px;
+            color: #555;
+        }
+        .delete-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: red;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .password-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+    </style>
+</head>
+<body>
+    <div class="password-screen" id="passwordScreen">
+        <h2>请输入密码进入</h2>
+        <input type="password" id="passwordInput" placeholder="输入密码">
+        <button onclick="checkPassword()">提交</button>
+    </div>
+
+    <div class="container" id="content" style="display: none;">
+        <h1>Chinese Culture Appreciation CCA 内部讨论组</h1>
+        <p>欢迎来到内部讨论区，在这里可以发布想法、讨论话题，与同学互动。</p>
+        
+        <div class="post-section">
+            <h2>发布新帖</h2>
+            <textarea id="postInput" placeholder="写下你的帖子内容..."></textarea>
+            <input type="file" id="imageInput" accept="image/*">
+            <button onclick="addPost()">发布</button>
+        </div>
+        
+        <div id="posts" class="posts">
+            <h2>帖子列表</h2>
+        </div>
+    </div>
+    
+    <script>
+        function checkPassword() {
+            var password = document.getElementById("passwordInput").value;
+            if (password === "114514") {
+                document.getElementById("passwordScreen").style.display = "none";
+                document.getElementById("content").style.display = "block";
+            } else {
+                alert("密码错误，拒绝访问！");
+            }
+        }
+        
+        function addPost() {
+            var postInput = document.getElementById("postInput");
+            var imageInput = document.getElementById("imageInput");
+            var postText = postInput.value.trim();
+            var postsSection = document.getElementById("posts");
+            if (postText !== "" || imageInput.files.length > 0) {
+                var newPost = document.createElement("div");
+                newPost.classList.add("post");
+                var timestamp = new Date().toLocaleString();
+                var content = `<p>${postText}</p><div class="info">发表于 ${timestamp}</div>`;
+                
+                if (imageInput.files.length > 0) {
+                    var imageUrl = URL.createObjectURL(imageInput.files[0]);
+                    content += `<img src="${imageUrl}" style="max-width:100%; border-radius:5px; margin-top:10px;">`;
+                }
+                
+                content += `<button class="delete-btn" onclick="deletePost(this)">删除</button>`;
+                
+                content += `<div class="comments">
+                                <h4>留言：</h4>
+                                <textarea placeholder="写下你的留言..."></textarea>
+                                <button onclick="addComment(this)">提交</button>
+                                <div class="comment-list"></div>
+                            </div>`;
+                
+                newPost.innerHTML = content;
+                postsSection.appendChild(newPost);
+                postInput.value = "";
+                imageInput.value = "";
+            }
+        }
+        
+        function addComment(button) {
+            var commentInput = button.previousElementSibling;
+            var commentText = commentInput.value.trim();
+            if (commentText !== "") {
+                var commentList = button.nextElementSibling;
+                var newComment = document.createElement("p");
+                newComment.textContent = commentText;
+                commentList.appendChild(newComment);
+                commentInput.value = "";
+            }
+        }
+        
+        function deletePost(button) {
+            var post = button.parentElement;
+            post.remove();
+        }
+    </script>
+</body>
+</html>
