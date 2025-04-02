@@ -34,7 +34,7 @@
             if (postInput === "" && imageInput.files.length === 0) return;
 
             let timestamp = new Date().toISOString();
-            let postData = { text: postInput, timestamp, likes: 0 }; // 添加初始点赞数为0
+            let postData = { text: postInput, timestamp, likes: 0, usersLiked: [] }; // 添加点赞数和点赞用户列表
 
             // 如果有图片，上传到 Firebase Storage
             if (imageInput.files.length > 0) {
@@ -72,8 +72,8 @@
                         content += `<img src="${post.image}" style="max-width:100%; border-radius:5px; margin-top:10px;">`;
                     }
 
-                    // 加入点赞功能
-                    content += `<button class="like-btn" onclick="likePost('${postId}')">点赞</button>`;
+                    // 添加点赞按钮，并显示当前点赞数
+                    content += `<button class="like-btn" onclick="toggleLike('${postId}')">点赞</button>`;
                     content += `<span id="likeCount-${postId}">${post.likes || 0}</span>`;
 
                     // 删除按钮
@@ -85,24 +85,42 @@
             });
         }
 
-        // 点赞帖子
-        function likePost(postId) {
-            var postRef = ref(db, `posts/${postId}/likes`);
-            // 使用事务来确保点赞数的准确更新
-            transaction(postRef, (currentLikes) => {
-                if (currentLikes === null) {
-                    return 1; // 如果没有点赞数，初始化为1
+        // 切换点赞状态：如果已经点赞，则取消；如果没有点赞，则添加
+        function toggleLike(postId) {
+            var postRef = ref(db, `posts/${postId}`);
+            onValue(postRef, (snapshot) => {
+                const post = snapshot.val();
+                const userId = "user1"; // 可以根据实际情况设置当前用户ID
+
+                if (post.usersLiked && post.usersLiked.includes(userId)) {
+                    // 如果当前用户已经点赞，则取消点赞
+                    let updatedUsersLiked = post.usersLiked.filter(id => id !== userId);
+                    let updatedLikes = post.likes - 1;
+
+                    // 更新数据库中的点赞数据
+                    updatePost(postId, updatedLikes, updatedUsersLiked);
                 } else {
-                    return currentLikes + 1; // 否则增加1
+                    // 如果当前用户没有点赞，则添加点赞
+                    let updatedUsersLiked = post.usersLiked ? [...post.usersLiked, userId] : [userId];
+                    let updatedLikes = post.likes + 1;
+
+                    // 更新数据库中的点赞数据
+                    updatePost(postId, updatedLikes, updatedUsersLiked);
                 }
+            });
+        }
+
+        // 更新帖子数据
+        function updatePost(postId, updatedLikes, updatedUsersLiked) {
+            const postRef = ref(db, `posts/${postId}`);
+            postRef.update({
+                likes: updatedLikes,
+                usersLiked: updatedUsersLiked
             }).then(() => {
-                // 更新UI显示
-                onValue(postRef, (snapshot) => {
-                    const likeCount = snapshot.val() || 0;
-                    document.getElementById(`likeCount-${postId}`).textContent = likeCount;
-                });
+                // 更新页面显示
+                document.getElementById(`likeCount-${postId}`).textContent = updatedLikes;
             }).catch((error) => {
-                console.error("点赞更新失败", error);
+                console.error("更新点赞数据失败", error);
             });
         }
 
@@ -116,4 +134,94 @@
         // 页面加载时获取帖子
         window.onload = loadPosts;
 
-        // 绑定函数到
+        // 绑定函数到全局（否则 HTML 按钮无法调用）
+        window.addPost = addPost;
+        window.deletePost = deletePost;
+        window.toggleLike = toggleLike;
+    </script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            text-align: center;
+        }
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        .post-section {
+            margin-top: 30px;
+            text-align: left;
+        }
+        textarea, input {
+            width: 100%;
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        button {
+            margin-top: 10px;
+            padding: 10px 20px;
+            border: none;
+            background-color: #0073e6;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .posts {
+            margin-top: 20px;
+        }
+        .post {
+            background: #fff;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+        .info {
+            font-size: 12px;
+            color: #666;
+        }
+        .like-btn, .delete-btn {
+            background-color: #0073e6;
+            color: white;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .like-btn {
+            margin-right: 10px;
+        }
+        .delete-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: red;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Chinese Culture Appreciation CCA 内部讨论组</h1>
+        <div class="post-section">
+            <h2>发布新帖</h2>
+            <textarea id="postInput" placeholder="写下你的帖子内容..."></textarea>
+            <input type="file" id="imageInput" accept="image/*">
+            <button onclick="addPost()">发布</button>
+        </div>
+        <div id="posts" class="posts">
+            <h2>帖子列表</h2>
+        </div>
+    </div>
+</body>
+</html>
