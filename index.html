@@ -4,167 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chinese Culture Appreciation CCA 内部讨论组</title>
-    <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            background-color: #f7f7f7;
-            margin: 0;
-            padding: 0;
-            color: #333;
-        }
-
-        .container {
-            width: 80%;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #fff;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
-            margin-top: 30px;
-        }
-
-        h1 {
-            font-size: 2rem;
-            color: #2c3e50;
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        .post-section {
-            margin-bottom: 30px;
-        }
-
-        .post-section h2 {
-            font-size: 1.5rem;
-            color: #34495e;
-        }
-
-        textarea {
-            width: 100%;
-            padding: 10px;
-            font-size: 1rem;
-            border-radius: 8px;
-            border: 1px solid #ccc;
-            margin: 10px 0;
-            resize: vertical;
-        }
-
-        input[type="file"] {
-            display: block;
-            margin: 10px 0;
-        }
-
-        button {
-            background-color: #3498db;
-            color: #fff;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-
-        button:hover {
-            background-color: #2980b9;
-        }
-
-        .posts {
-            margin-top: 20px;
-        }
-
-        .post {
-            background-color: #ecf0f1;
-            padding: 20px;
-            margin-bottom: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        }
-
-        .info {
-            font-size: 0.9rem;
-            color: #7f8c8d;
-        }
-
-        .delete-btn {
-            background-color: #e74c3c;
-            color: #fff;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            margin-left: 10px;
-        }
-
-        .delete-btn:hover {
-            background-color: #c0392b;
-        }
-
-        .like-btn {
-            background-color: #2ecc71;
-            color: #fff;
-            padding: 5px 10px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            margin-top: 10px;
-        }
-
-        .like-btn:hover {
-            background-color: #27ae60;
-        }
-
-        .comments {
-            margin-top: 20px;
-            background-color: #bdc3c7;
-            padding: 15px;
-            border-radius: 8px;
-        }
-
-        .comment-list {
-            margin-top: 15px;
-            padding-left: 10px;
-        }
-
-        .comment {
-            margin-bottom: 10px;
-            padding: 5px;
-            background-color: #ecf0f1;
-            border-radius: 5px;
-        }
-
-        .comment-input {
-            width: 100%;
-            padding: 10px;
-            border-radius: 8px;
-            border: 1px solid #ccc;
-            margin-bottom: 10px;
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                width: 95%;
-            }
-
-            h1 {
-                font-size: 1.5rem;
-            }
-
-            .post-section h2 {
-                font-size: 1.2rem;
-            }
-
-            button {
-                padding: 8px 15px;
-                font-size: 0.9rem;
-            }
-        }
-    </style>
     <script type="module">
         // 导入 Firebase SDK
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
-        import { getDatabase, ref, push, onValue, remove, set } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-database.js";
+        import { getDatabase, ref, push, onValue, remove, transaction } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-database.js";
         import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-storage.js";
 
         // Firebase 配置
@@ -191,7 +34,7 @@
             if (postInput === "" && imageInput.files.length === 0) return;
 
             let timestamp = new Date().toISOString();
-            let postData = { text: postInput, timestamp };
+            let postData = { text: postInput, timestamp, likes: 0 }; // 添加初始点赞数为0
 
             // 如果有图片，上传到 Firebase Storage
             if (imageInput.files.length > 0) {
@@ -229,21 +72,37 @@
                         content += `<img src="${post.image}" style="max-width:100%; border-radius:5px; margin-top:10px;">`;
                     }
 
+                    // 加入点赞功能
+                    content += `<button class="like-btn" onclick="likePost('${postId}')">点赞</button>`;
+                    content += `<span id="likeCount-${postId}">${post.likes || 0}</span>`;
+
+                    // 删除按钮
                     content += `<button class="delete-btn" onclick="deletePost('${postId}')">删除</button>`;
-                    content += `<button class="like-btn" onclick="likePost('${postId}')">👍 <span id="likeCount-${postId}">${post.likes || 0}</span></button>`;
-                    content += `<div class="comments" id="commentSection-${postId}">
-                                    <h4>留言：</h4>
-                                    <textarea id="commentInput-${postId}" class="comment-input" placeholder="写下你的留言..."></textarea>
-                                    <button onclick="addComment('${postId}')">提交</button>
-                                    <div class="comment-list" id="commentList-${postId}"></div>
-                                </div>`;
-                    
+
                     postElement.innerHTML = content;
                     postsSection.appendChild(postElement);
-
-                    // 加载评论
-                    loadComments(postId);
                 });
+            });
+        }
+
+        // 点赞帖子
+        function likePost(postId) {
+            var postRef = ref(db, `posts/${postId}/likes`);
+            // 使用事务来确保点赞数的准确更新
+            transaction(postRef, (currentLikes) => {
+                if (currentLikes === null) {
+                    return 1; // 如果没有点赞数，初始化为1
+                } else {
+                    return currentLikes + 1; // 否则增加1
+                }
+            }).then(() => {
+                // 更新UI显示
+                onValue(postRef, (snapshot) => {
+                    const likeCount = snapshot.val() || 0;
+                    document.getElementById(`likeCount-${postId}`).textContent = likeCount;
+                });
+            }).catch((error) => {
+                console.error("点赞更新失败", error);
             });
         }
 
@@ -254,69 +113,7 @@
             }
         }
 
-        // 点赞帖子
-        function likePost(postId) {
-            var postRef = ref(db, `posts/${postId}/likes`);
-            onValue(postRef, (snapshot) => {
-                var currentLikes = snapshot.val() || 0;
-                set(postRef, currentLikes + 1); // 增加点赞数
-                document.getElementById(`likeCount-${postId}`).textContent = currentLikes + 1; // 更新UI
-            });
-        }
-
-        // 添加评论
-        function addComment(postId) {
-            var commentInput = document.getElementById(`commentInput-${postId}`);
-            var commentText = commentInput.value.trim();
-            if (commentText === "") return;
-
-            // 存储评论到 Firebase
-            var commentData = {
-                text: commentText,
-                timestamp: new Date().toISOString(),
-            };
-            push(ref(db, `posts/${postId}/comments`), commentData).then(() => {
-                commentInput.value = "";
-            });
-        }
-
-        // 加载评论
-        function loadComments(postId) {
-            onValue(ref(db, `posts/${postId}/comments`), (snapshot) => {
-                var commentList = document.getElementById(`commentList-${postId}`);
-                commentList.innerHTML = ""; // 清空原评论
-                snapshot.forEach((childSnapshot) => {
-                    var comment = childSnapshot.val();
-                    var commentElement = document.createElement("div");
-                    commentElement.classList.add("comment");
-                    commentElement.textContent = `${comment.text} (发表于 ${new Date(comment.timestamp).toLocaleString()})`;
-                    commentList.appendChild(commentElement);
-                });
-            });
-        }
-
         // 页面加载时获取帖子
         window.onload = loadPosts;
 
-        // 绑定函数到全局（否则 HTML 按钮无法调用）
-        window.addPost = addPost;
-        window.deletePost = deletePost;
-        window.likePost = likePost;
-        window.addComment = addComment;
-    </script>
-</head>
-<body>
-    <div class="container">
-        <h1>Chinese Culture Appreciation CCA 内部讨论组</h1>
-        <div class="post-section">
-            <h2>发布新帖</h2>
-            <textarea id="postInput" placeholder="写下你的帖子内容..."></textarea>
-            <input type="file" id="imageInput" accept="image/*">
-            <button onclick="addPost()">发布</button>
-        </div>
-        <div id="posts" class="posts">
-            <h2>帖子列表</h2>
-        </div>
-    </div>
-</body>
-</html>
+        // 绑定函数到
