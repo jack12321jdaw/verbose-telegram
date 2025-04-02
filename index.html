@@ -3,9 +3,104 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chinese Culture Appreciation CCA 内部讨论组</title>
+    <title>CCA 内部讨论组</title>
+    <style>
+        /* 基础样式 */
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f2f5;
+            text-align: center;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        .post-section {
+            text-align: left;
+        }
+        textarea, input {
+            width: 100%;
+            margin-top: 10px;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+            transition: 0.3s;
+        }
+        textarea:focus, input:focus {
+            border-color: #0073e6;
+            outline: none;
+            box-shadow: 0 0 5px rgba(0, 115, 230, 0.3);
+        }
+        button {
+            margin-top: 10px;
+            padding: 12px;
+            width: 100%;
+            border: none;
+            background-color: #0073e6;
+            color: white;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        button:hover {
+            background-color: #005bb5;
+        }
+        .posts {
+            margin-top: 20px;
+            text-align: left;
+        }
+        .post {
+            background: white;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            position: relative;
+            transition: 0.3s;
+        }
+        .post:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+        }
+        .post .info {
+            font-size: 12px;
+            color: #666;
+        }
+        .delete-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: red;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            font-size: 14px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .delete-btn:hover {
+            background-color: darkred;
+        }
+        .image-preview {
+            max-width: 100%;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+    </style>
     <script type="module">
-        // 导入 Firebase SDK
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
         import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-database.js";
         import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-storage.js";
@@ -22,12 +117,10 @@
             measurementId: "G-2V2QJL1S0J"
         };
 
-        // 初始化 Firebase
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
         const storage = getStorage(app);
 
-        // 发布帖子
         async function addPost() {
             let postInput = document.getElementById("postInput").value.trim();
             let imageInput = document.getElementById("imageInput");
@@ -36,29 +129,26 @@
             let timestamp = new Date().toISOString();
             let postData = { text: postInput, timestamp };
 
-            // 如果有图片，上传到 Firebase Storage
             if (imageInput.files.length > 0) {
                 let file = imageInput.files[0];
                 let imageRef = storageRef(storage, `images/${timestamp}-${file.name}`);
                 await uploadBytes(imageRef, file);
                 let imageUrl = await getDownloadURL(imageRef);
-                postData.image = imageUrl; // 保存图片链接
+                postData.image = imageUrl;
             }
 
-            // 存储到 Firebase Realtime Database
             push(ref(db, "posts"), postData).then(() => {
                 document.getElementById("postInput").value = "";
                 imageInput.value = "";
             });
         }
 
-        // 加载帖子
         function loadPosts() {
             let postsSection = document.getElementById("posts");
             postsSection.innerHTML = "";
 
             onValue(ref(db, "posts"), (snapshot) => {
-                postsSection.innerHTML = ""; // 清空原来的帖子
+                postsSection.innerHTML = "";
                 snapshot.forEach((childSnapshot) => {
                     let postId = childSnapshot.key;
                     let post = childSnapshot.val();
@@ -69,7 +159,7 @@
                     let content = `<p>${post.text}</p><div class="info">发表于 ${new Date(post.timestamp).toLocaleString()}</div>`;
 
                     if (post.image) {
-                        content += `<img src="${post.image}" style="max-width:100%; border-radius:5px; margin-top:10px;">`;
+                        content += `<img src="${post.image}" class="image-preview">`;
                     }
 
                     content += `<button class="delete-btn" onclick="deletePost('${postId}')">删除</button>`;
@@ -80,24 +170,20 @@
             });
         }
 
-        // 删除帖子
         function deletePost(postId) {
             if (confirm("确定要删除该帖子吗？")) {
                 remove(ref(db, `posts/${postId}`));
             }
         }
 
-        // 页面加载时获取帖子
         window.onload = loadPosts;
-
-        // 绑定函数到全局（否则 HTML 按钮无法调用）
         window.addPost = addPost;
         window.deletePost = deletePost;
     </script>
 </head>
 <body>
     <div class="container">
-        <h1>Chinese Culture Appreciation CCA 内部讨论组</h1>
+        <h1>CCA 内部讨论组</h1>
         <div class="post-section">
             <h2>发布新帖</h2>
             <textarea id="postInput" placeholder="写下你的帖子内容..."></textarea>
@@ -107,6 +193,3 @@
         <div id="posts" class="posts">
             <h2>帖子列表</h2>
         </div>
-    </div>
-</body>
-</html>
