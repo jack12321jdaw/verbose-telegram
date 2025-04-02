@@ -4,146 +4,109 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chinese Culture Appreciation CCA 内部讨论组</title>
-    <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-database.js"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f4f4;
-            text-align: center;
-        }
-        .container {
-            max-width: 800px;
-            margin: 50px auto;
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-        h1 {
-            color: #333;
-        }
-        .post-section {
-            margin-top: 30px;
-            text-align: left;
-        }
-        textarea, input {
-            width: 100%;
-            margin-top: 10px;
-            padding: 10px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-        }
-        button {
-            margin-top: 10px;
-            padding: 10px 20px;
-            border: none;
-            background-color: #0073e6;
-            color: white;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        .posts {
-            margin-top: 20px;
-            background: #eee;
-            padding: 10px;
-            border-radius: 5px;
-            text-align: left;
-        }
-        .post {
-            background: white;
-            padding: 10px;
-            margin-top: 10px;
-            border-radius: 5px;
-            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
-            position: relative;
-        }
-        .delete-btn {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background-color: red;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>Chinese Culture Appreciation CCA 内部讨论组</h1>
-        <p>欢迎来到内部讨论区，在这里可以发布想法、讨论话题，与同学互动。</p>
-        
-        <div class="post-section">
-            <h2>发布新帖</h2>
-            <textarea id="postInput" placeholder="写下你的帖子内容..."></textarea>
-            <button onclick="addPost()">发布</button>
-        </div>
-        
-        <div id="posts" class="posts">
-            <h2>帖子列表</h2>
-        </div>
-    </div>
-    
-    <script>
+    <script type="module">
+        // 导入 Firebase SDK
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
+        import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-database.js";
+        import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-storage.js";
+
+        // Firebase 配置
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_AUTH_DOMAIN",
+            apiKey: "AIzaSyAzciTQ22aDLnglOVmgmlF3Ka7cckn2R-Y",
+            authDomain: "cca-hub.firebaseapp.com",
             databaseURL: "https://cca-hub-default-rtdb.firebaseio.com",
             projectId: "cca-hub",
-            storageBucket: "YOUR_STORAGE_BUCKET",
-            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-            appId: "YOUR_APP_ID"
+            storageBucket: "cca-hub.appspot.com",
+            messagingSenderId: "556387093453",
+            appId: "1:556387093453:web:d0b0488c55f6ad04a51284",
+            measurementId: "G-2V2QJL1S0J"
         };
-        
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
 
-        function addPost() {
+        // 初始化 Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const storage = getStorage(app);
+
+        // 发布帖子
+        async function addPost() {
             let postInput = document.getElementById("postInput").value.trim();
-            if (postInput === "") return;
+            let imageInput = document.getElementById("imageInput");
+            if (postInput === "" && imageInput.files.length === 0) return;
 
             let timestamp = new Date().toISOString();
-            let newPostRef = database.ref("posts").push();
-            newPostRef.set({
-                text: postInput,
-                timestamp: timestamp
-            }).then(() => {
+            let postData = { text: postInput, timestamp };
+
+            // 如果有图片，上传到 Firebase Storage
+            if (imageInput.files.length > 0) {
+                let file = imageInput.files[0];
+                let imageRef = storageRef(storage, `images/${timestamp}-${file.name}`);
+                await uploadBytes(imageRef, file);
+                let imageUrl = await getDownloadURL(imageRef);
+                postData.image = imageUrl; // 保存图片链接
+            }
+
+            // 存储到 Firebase Realtime Database
+            push(ref(db, "posts"), postData).then(() => {
                 document.getElementById("postInput").value = "";
+                imageInput.value = "";
             });
         }
 
+        // 加载帖子
         function loadPosts() {
             let postsSection = document.getElementById("posts");
             postsSection.innerHTML = "";
 
-            database.ref("posts").orderByChild("timestamp").on("value", snapshot => {
-                postsSection.innerHTML = "";
-                snapshot.forEach(childSnapshot => {
+            onValue(ref(db, "posts"), (snapshot) => {
+                postsSection.innerHTML = ""; // 清空原来的帖子
+                snapshot.forEach((childSnapshot) => {
+                    let postId = childSnapshot.key;
                     let post = childSnapshot.val();
+
                     let postElement = document.createElement("div");
                     postElement.classList.add("post");
-                    postElement.innerHTML = `<p>${post.text}</p><div class="info">发表于 ${new Date(post.timestamp).toLocaleString()}</div>`;
-                    postElement.innerHTML += `<button class="delete-btn" onclick="deletePost('${childSnapshot.key}')">删除</button>`;
+
+                    let content = `<p>${post.text}</p><div class="info">发表于 ${new Date(post.timestamp).toLocaleString()}</div>`;
+
+                    if (post.image) {
+                        content += `<img src="${post.image}" style="max-width:100%; border-radius:5px; margin-top:10px;">`;
+                    }
+
+                    content += `<button class="delete-btn" onclick="deletePost('${postId}')">删除</button>`;
+
+                    postElement.innerHTML = content;
                     postsSection.appendChild(postElement);
                 });
             });
         }
 
+        // 删除帖子
         function deletePost(postId) {
-            database.ref("posts/" + postId).remove()
-            .then(() => {
-                console.log("Post deleted");
-            }).catch(error => {
-                console.error("Error deleting post: ", error);
-            });
+            if (confirm("确定要删除该帖子吗？")) {
+                remove(ref(db, `posts/${postId}`));
+            }
         }
 
+        // 页面加载时获取帖子
         window.onload = loadPosts;
+
+        // 绑定函数到全局（否则 HTML 按钮无法调用）
+        window.addPost = addPost;
+        window.deletePost = deletePost;
     </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Chinese Culture Appreciation CCA 内部讨论组</h1>
+        <div class="post-section">
+            <h2>发布新帖</h2>
+            <textarea id="postInput" placeholder="写下你的帖子内容..."></textarea>
+            <input type="file" id="imageInput" accept="image/*">
+            <button onclick="addPost()">发布</button>
+        </div>
+        <div id="posts" class="posts">
+            <h2>帖子列表</h2>
+        </div>
+    </div>
 </body>
 </html>
