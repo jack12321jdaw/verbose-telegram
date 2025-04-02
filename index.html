@@ -4,6 +4,163 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chinese Culture Appreciation CCA 内部讨论组</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f7f7f7;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+
+        .container {
+            width: 80%;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            margin-top: 30px;
+        }
+
+        h1 {
+            font-size: 2rem;
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .post-section {
+            margin-bottom: 30px;
+        }
+
+        .post-section h2 {
+            font-size: 1.5rem;
+            color: #34495e;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 10px;
+            font-size: 1rem;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            margin: 10px 0;
+            resize: vertical;
+        }
+
+        input[type="file"] {
+            display: block;
+            margin: 10px 0;
+        }
+
+        button {
+            background-color: #3498db;
+            color: #fff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        .posts {
+            margin-top: 20px;
+        }
+
+        .post {
+            background-color: #ecf0f1;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .info {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+        }
+
+        .delete-btn {
+            background-color: #e74c3c;
+            color: #fff;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-left: 10px;
+        }
+
+        .delete-btn:hover {
+            background-color: #c0392b;
+        }
+
+        .like-btn {
+            background-color: #2ecc71;
+            color: #fff;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-top: 10px;
+        }
+
+        .like-btn:hover {
+            background-color: #27ae60;
+        }
+
+        .comments {
+            margin-top: 20px;
+            background-color: #bdc3c7;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .comment-list {
+            margin-top: 15px;
+            padding-left: 10px;
+        }
+
+        .comment {
+            margin-bottom: 10px;
+            padding: 5px;
+            background-color: #ecf0f1;
+            border-radius: 5px;
+        }
+
+        .comment-input {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            margin-bottom: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                width: 95%;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .post-section h2 {
+                font-size: 1.2rem;
+            }
+
+            button {
+                padding: 8px 15px;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
     <script type="module">
         // 导入 Firebase SDK
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
@@ -73,10 +230,10 @@
                     }
 
                     content += `<button class="delete-btn" onclick="deletePost('${postId}')">删除</button>`;
-                    content += `<button onclick="likePost('${postId}')">👍 <span id="likeCount-${postId}">${post.likes || 0}</span></button>`;
+                    content += `<button class="like-btn" onclick="likePost('${postId}')">👍 <span id="likeCount-${postId}">${post.likes || 0}</span></button>`;
                     content += `<div class="comments" id="commentSection-${postId}">
                                     <h4>留言：</h4>
-                                    <textarea id="commentInput-${postId}" placeholder="写下你的留言..."></textarea>
+                                    <textarea id="commentInput-${postId}" class="comment-input" placeholder="写下你的留言..."></textarea>
                                     <button onclick="addComment('${postId}')">提交</button>
                                     <div class="comment-list" id="commentList-${postId}"></div>
                                 </div>`;
