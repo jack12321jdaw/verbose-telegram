@@ -100,21 +100,6 @@
             background-color: #c0392b;
         }
 
-        .like-btn {
-            background-color: #2ecc71;
-            color: #fff;
-            padding: 5px 10px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            margin-top: 10px;
-        }
-
-        .like-btn:hover {
-            background-color: #27ae60;
-        }
-
         .comments {
             margin-top: 20px;
             background-color: #bdc3c7;
@@ -230,7 +215,6 @@
                     }
 
                     content += `<button class="delete-btn" onclick="deletePost('${postId}')">删除</button>`;
-                    content += `<button class="like-btn" onclick="likePost('${postId}')">👍 <span id="likeCount-${postId}">${post.likes || 0}</span></button>`;
                     content += `<div class="comments" id="commentSection-${postId}">
                                     <h4>留言：</h4>
                                     <textarea id="commentInput-${postId}" class="comment-input" placeholder="写下你的留言..."></textarea>
@@ -252,16 +236,6 @@
             if (confirm("确定要删除该帖子吗？")) {
                 remove(ref(db, `posts/${postId}`));
             }
-        }
-
-        // 点赞帖子
-        function likePost(postId) {
-            var postRef = ref(db, `posts/${postId}/likes`);
-            onValue(postRef, (snapshot) => {
-                var currentLikes = snapshot.val() || 0;
-                set(postRef, currentLikes + 1); // 增加点赞数
-                document.getElementById(`likeCount-${postId}`).textContent = currentLikes + 1; // 更新UI
-            });
         }
 
         // 添加评论
@@ -301,7 +275,6 @@
         // 绑定函数到全局（否则 HTML 按钮无法调用）
         window.addPost = addPost;
         window.deletePost = deletePost;
-        window.likePost = likePost;
         window.addComment = addComment;
     </script>
 </head>
