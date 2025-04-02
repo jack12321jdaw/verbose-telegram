@@ -7,7 +7,7 @@
     <script type="module">
         // 导入 Firebase SDK
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
-        import { getDatabase, ref, push, onValue, remove, transaction } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-database.js";
+        import { getDatabase, ref, push, onValue, remove, update } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-database.js";
         import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-storage.js";
 
         // Firebase 配置
@@ -85,12 +85,12 @@
             });
         }
 
-        // 切换点赞状态：如果已经点赞，则取消；如果没有点赞，则添加
+        // 切换点赞状态：如果已经点赞，则取消；如果没有点赞，则添加点赞
         function toggleLike(postId) {
             var postRef = ref(db, `posts/${postId}`);
             onValue(postRef, (snapshot) => {
                 const post = snapshot.val();
-                const userId = "user1"; // 可以根据实际情况设置当前用户ID
+                const userId = "user1"; // 假设这是当前用户的ID，可以根据实际情况修改
 
                 if (post.usersLiked && post.usersLiked.includes(userId)) {
                     // 如果当前用户已经点赞，则取消点赞
