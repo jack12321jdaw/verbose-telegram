@@ -7,7 +7,7 @@
     <script type="module">
         // 导入 Firebase SDK
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
-        import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-database.js";
+        import { getDatabase, ref, push, onValue, remove, set } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-database.js";
         import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-storage.js";
 
         // Firebase 配置
@@ -73,9 +73,19 @@
                     }
 
                     content += `<button class="delete-btn" onclick="deletePost('${postId}')">删除</button>`;
-
+                    content += `<button onclick="likePost('${postId}')">👍 <span id="likeCount-${postId}">${post.likes || 0}</span></button>`;
+                    content += `<div class="comments" id="commentSection-${postId}">
+                                    <h4>留言：</h4>
+                                    <textarea id="commentInput-${postId}" placeholder="写下你的留言..."></textarea>
+                                    <button onclick="addComment('${postId}')">提交</button>
+                                    <div class="comment-list" id="commentList-${postId}"></div>
+                                </div>`;
+                    
                     postElement.innerHTML = content;
                     postsSection.appendChild(postElement);
+
+                    // 加载评论
+                    loadComments(postId);
                 });
             });
         }
@@ -87,12 +97,55 @@
             }
         }
 
+        // 点赞帖子
+        function likePost(postId) {
+            var postRef = ref(db, `posts/${postId}/likes`);
+            onValue(postRef, (snapshot) => {
+                var currentLikes = snapshot.val() || 0;
+                set(postRef, currentLikes + 1); // 增加点赞数
+                document.getElementById(`likeCount-${postId}`).textContent = currentLikes + 1; // 更新UI
+            });
+        }
+
+        // 添加评论
+        function addComment(postId) {
+            var commentInput = document.getElementById(`commentInput-${postId}`);
+            var commentText = commentInput.value.trim();
+            if (commentText === "") return;
+
+            // 存储评论到 Firebase
+            var commentData = {
+                text: commentText,
+                timestamp: new Date().toISOString(),
+            };
+            push(ref(db, `posts/${postId}/comments`), commentData).then(() => {
+                commentInput.value = "";
+            });
+        }
+
+        // 加载评论
+        function loadComments(postId) {
+            onValue(ref(db, `posts/${postId}/comments`), (snapshot) => {
+                var commentList = document.getElementById(`commentList-${postId}`);
+                commentList.innerHTML = ""; // 清空原评论
+                snapshot.forEach((childSnapshot) => {
+                    var comment = childSnapshot.val();
+                    var commentElement = document.createElement("div");
+                    commentElement.classList.add("comment");
+                    commentElement.textContent = `${comment.text} (发表于 ${new Date(comment.timestamp).toLocaleString()})`;
+                    commentList.appendChild(commentElement);
+                });
+            });
+        }
+
         // 页面加载时获取帖子
         window.onload = loadPosts;
 
         // 绑定函数到全局（否则 HTML 按钮无法调用）
         window.addPost = addPost;
         window.deletePost = deletePost;
+        window.likePost = likePost;
+        window.addComment = addComment;
     </script>
 </head>
 <body>
