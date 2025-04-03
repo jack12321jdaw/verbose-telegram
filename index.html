@@ -34,12 +34,7 @@
             margin-bottom: 30px;
         }
 
-        .post-section h2 {
-            font-size: 1.5rem;
-            color: #34495e;
-        }
-
-        textarea {
+        textarea, input[type="file"] {
             width: 100%;
             padding: 10px;
             font-size: 1rem;
@@ -47,11 +42,6 @@
             border: 1px solid #ccc;
             margin: 10px 0;
             resize: vertical;
-        }
-
-        input[type="file"] {
-            display: block;
-            margin: 10px 0;
         }
 
         button {
@@ -85,7 +75,7 @@
             color: #7f8c8d;
         }
 
-        .delete-btn {
+        .delete-btn, .like-btn {
             background-color: #e74c3c;
             color: #fff;
             border: none;
@@ -99,197 +89,93 @@
         .delete-btn:hover {
             background-color: #c0392b;
         }
-
-        .comments {
-            margin-top: 20px;
-            background-color: #bdc3c7;
-            padding: 15px;
-            border-radius: 8px;
+        
+        .like-btn {
+            background-color: #2ecc71;
         }
 
-        .comment-list {
-            margin-top: 15px;
-            padding-left: 10px;
-        }
-
-        .comment {
-            margin-bottom: 10px;
-            padding: 5px;
-            background-color: #ecf0f1;
-            border-radius: 5px;
-        }
-
-        .comment-input {
-            width: 100%;
-            padding: 10px;
-            border-radius: 8px;
-            border: 1px solid #ccc;
-            margin-bottom: 10px;
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                width: 95%;
-            }
-
-            h1 {
-                font-size: 1.5rem;
-            }
-
-            .post-section h2 {
-                font-size: 1.2rem;
-            }
-
-            button {
-                padding: 8px 15px;
-                font-size: 0.9rem;
-            }
+        .like-btn:hover {
+            background-color: #27ae60;
         }
     </style>
     <script type="module">
-        // 导入 Firebase SDK
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
         import { getDatabase, ref, push, onValue, remove, set } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-database.js";
         import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-storage.js";
 
-        // Firebase 配置
-        const firebaseConfig = {
-            apiKey: "AIzaSyAzciTQ22aDLnglOVmgmlF3Ka7cckn2R-Y",
-            authDomain: "cca-hub.firebaseapp.com",
-            databaseURL: "https://cca-hub-default-rtdb.firebaseio.com",
-            projectId: "cca-hub",
-            storageBucket: "cca-hub.appspot.com",
-            messagingSenderId: "556387093453",
-            appId: "1:556387093453:web:d0b0488c55f6ad04a51284",
-            measurementId: "G-2V2QJL1S0J"
-        };
-
-        // 初始化 Firebase
+        const firebaseConfig = { /* 配置项 */ };
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
         const storage = getStorage(app);
 
-        // 发布帖子
-        async function addPost() {
+        function addPost() {
             let postInput = document.getElementById("postInput").value.trim();
             let imageInput = document.getElementById("imageInput");
-            if (postInput === "" && imageInput.files.length === 0) return;
+            if (!postInput && imageInput.files.length === 0) return;
 
             let timestamp = new Date().toISOString();
-            let postData = { text: postInput, timestamp };
+            let postData = { text: postInput, timestamp, likes: 0 };
 
-            // 如果有图片，上传到 Firebase Storage
             if (imageInput.files.length > 0) {
                 let file = imageInput.files[0];
-                let imageRef = storageRef(storage, `images/${timestamp}-${file.name}`);
-                await uploadBytes(imageRef, file);
-                let imageUrl = await getDownloadURL(imageRef);
-                postData.image = imageUrl; // 保存图片链接
+                let imgRef = storageRef(storage, `images/${timestamp}-${file.name}`);
+                uploadBytes(imgRef, file).then(snapshot => {
+                    return getDownloadURL(snapshot.ref);
+                }).then(url => {
+                    postData.image = url;
+                    push(ref(db, "posts"), postData);
+                });
+            } else {
+                push(ref(db, "posts"), postData);
             }
-
-            // 存储到 Firebase Realtime Database
-            push(ref(db, "posts"), postData).then(() => {
-                document.getElementById("postInput").value = "";
-                imageInput.value = "";
-            });
         }
 
-        // 加载帖子
         function loadPosts() {
             let postsSection = document.getElementById("posts");
-            postsSection.innerHTML = "";
-
             onValue(ref(db, "posts"), (snapshot) => {
-                postsSection.innerHTML = ""; // 清空原来的帖子
+                postsSection.innerHTML = snapshot.exists() ? "" : "<p>暂无帖子</p>";
                 snapshot.forEach((childSnapshot) => {
                     let postId = childSnapshot.key;
                     let post = childSnapshot.val();
-
                     let postElement = document.createElement("div");
                     postElement.classList.add("post");
 
                     let content = `<p>${post.text}</p><div class="info">发表于 ${new Date(post.timestamp).toLocaleString()}</div>`;
-
-                    if (post.image) {
-                        content += `<img src="${post.image}" style="max-width:100%; border-radius:5px; margin-top:10px;">`;
-                    }
-
+                    if (post.image) content += `<img src="${post.image}" style="max-width:100%; border-radius:5px; margin-top:10px;">`;
+                    content += `<button class="like-btn" onclick="likePost('${postId}', ${post.likes})">👍 ${post.likes}</button>`;
                     content += `<button class="delete-btn" onclick="deletePost('${postId}')">删除</button>`;
-                    content += `<div class="comments" id="commentSection-${postId}">
-                                    <h4>留言：</h4>
-                                    <textarea id="commentInput-${postId}" class="comment-input" placeholder="写下你的留言..."></textarea>
-                                    <button onclick="addComment('${postId}')">提交</button>
-                                    <div class="comment-list" id="commentList-${postId}"></div>
-                                </div>`;
-                    
+
                     postElement.innerHTML = content;
                     postsSection.appendChild(postElement);
-
-                    // 加载评论
-                    loadComments(postId);
                 });
             });
         }
 
-        // 删除帖子
+        function likePost(postId, currentLikes) {
+            set(ref(db, `posts/${postId}/likes`), currentLikes + 1);
+        }
+
         function deletePost(postId) {
             if (confirm("确定要删除该帖子吗？")) {
                 remove(ref(db, `posts/${postId}`));
             }
         }
 
-        // 添加评论
-        function addComment(postId) {
-            var commentInput = document.getElementById(`commentInput-${postId}`);
-            var commentText = commentInput.value.trim();
-            if (commentText === "") return;
-
-            // 存储评论到 Firebase
-            var commentData = {
-                text: commentText,
-                timestamp: new Date().toISOString(),
-            };
-            push(ref(db, `posts/${postId}/comments`), commentData).then(() => {
-                commentInput.value = "";
-            });
-        }
-
-        // 加载评论
-        function loadComments(postId) {
-            onValue(ref(db, `posts/${postId}/comments`), (snapshot) => {
-                var commentList = document.getElementById(`commentList-${postId}`);
-                commentList.innerHTML = ""; // 清空原评论
-                snapshot.forEach((childSnapshot) => {
-                    var comment = childSnapshot.val();
-                    var commentElement = document.createElement("div");
-                    commentElement.classList.add("comment");
-                    commentElement.textContent = `${comment.text} (发表于 ${new Date(comment.timestamp).toLocaleString()})`;
-                    commentList.appendChild(commentElement);
-                });
-            });
-        }
-
-        // 页面加载时获取帖子
         window.onload = loadPosts;
-
-        // 绑定函数到全局（否则 HTML 按钮无法调用）
         window.addPost = addPost;
         window.deletePost = deletePost;
-        window.addComment = addComment;
+        window.likePost = likePost;
     </script>
 </head>
 <body>
     <div class="container">
         <h1>Chinese Culture Appreciation CCA 内部讨论组</h1>
         <div class="post-section">
-            <h2>发布新帖</h2>
             <textarea id="postInput" placeholder="写下你的帖子内容..."></textarea>
             <input type="file" id="imageInput" accept="image/*">
             <button onclick="addPost()">发布</button>
         </div>
-        <div id="posts" class="posts">
-            <h2>帖子列表</h2>
-        </div>
+        <div id="posts" class="posts"></div>
     </div>
 </body>
 </html>
