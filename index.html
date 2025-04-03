@@ -80,6 +80,12 @@
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
 
+        .post h3 {
+            font-size: 1.8rem;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
         .info {
             font-size: 0.8rem;
             color: #7f8c8d;
@@ -224,7 +230,7 @@
                     let postElement = document.createElement("div");
                     postElement.classList.add("post");
 
-                    let content = `<p>${post.text}</p><div class="info" style="font-size: 0.8rem;">发表于 ${new Date(post.timestamp).toLocaleString()}</div>`;
+                    let content = `<h3>${post.text}</h3><div class="info" style="font-size: 0.8rem;">发表于 ${new Date(post.timestamp).toLocaleString()}</div>`;
 
                     if (post.image) {
                         content += `<img src="${post.image}" style="max-width:100%; border-radius:5px; margin-top:10px;">`;
